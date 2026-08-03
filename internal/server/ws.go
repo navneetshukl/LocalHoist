@@ -1,6 +1,8 @@
-package main
+package server
 
 import (
+	"LocalHoist/utils"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -15,7 +17,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Upgrade failed:", err)
@@ -23,6 +25,28 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
+	clientID := utils.GenerateClientID()
+
+	scheme := "https"
+	if r.TLS == nil && r.Header.Get("X-Forwarded-Proto") != "https" {
+		scheme = "http"
+	}
+	publicURL := fmt.Sprintf("%s://%s/tunnel/%s", scheme, r.Host, clientID)
+
+	connResponse := WebSocketClientRequest{
+		Message:   "proxy server connected",
+		ErrorCode: 0,
+		URL:       publicURL,
+	}
+
+	log.Println("Publice URL ",publicURL)
+
+	err = conn.WriteJSON(connResponse)
+	if err != nil {
+		log.Println("Something went wrong")
+		return
+
+	}
 	ctx := 0
 
 	for {
@@ -42,14 +66,5 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		ctx++
-	}
-}
-
-func main() {
-	http.HandleFunc("/ws", handleWebSocket)
-
-	log.Println("Server is listening on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal("Server crashed:", err)
 	}
 }
