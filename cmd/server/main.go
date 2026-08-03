@@ -10,7 +10,9 @@ import (
 
 func main() {
 	r := gin.Default()
-	http.HandleFunc("/ws", server.HandleWebSocket)
+
+	wsManager := server.NewWSManager()
+	http.HandleFunc("/ws", wsManager.HandleWebSocket)
 	r.Any("/tunnel/*filepath", server.TunnelHandler)
 
 	log.Println("Server is listening on :3000")

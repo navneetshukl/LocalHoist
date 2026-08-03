@@ -17,7 +17,17 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+type WSManager struct {
+	wsConn map[string]*websocket.Conn
+}
+
+func NewWSManager() *WSManager {
+	return &WSManager{
+		wsConn: make(map[string]*websocket.Conn),
+	}
+}
+
+func (ws *WSManager) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Upgrade failed:", err)
@@ -26,6 +36,8 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	clientID := utils.GenerateClientID()
+
+	ws.wsConn[clientID] = conn
 
 	scheme := "https"
 	if r.TLS == nil && r.Header.Get("X-Forwarded-Proto") != "https" {
@@ -39,7 +51,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		URL:       publicURL,
 	}
 
-	log.Println("Publice URL ",publicURL)
+	log.Println("Publice URL ", publicURL)
 
 	err = conn.WriteJSON(connResponse)
 	if err != nil {
@@ -67,4 +79,20 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 		ctx++
 	}
+}
+
+func (ws *WSManager) ForwardRequest(clientId string, payload interface{}) error {
+
+	// get the websocket object
+
+	c, ok := ws.wsConn[clientId]
+	if !ok {
+		return fmt.Errorf("no connection for this %s client \n", clientId)
+	}
+	err := c.WriteJSON(payload)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
