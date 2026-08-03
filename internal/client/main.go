@@ -11,7 +11,7 @@ import (
 
 func main() {
 	// The URL of your Server
-	url := "ws://localhost:8080/ws"
+	url := "ws://localhost:3000/ws"
 	log.Printf("Connecting to %s...", url)
 
 	// 1. Dial the server
