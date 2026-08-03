@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httputil"
 
@@ -46,7 +47,7 @@ func ReadAndPrepareRequest(ctx *gin.Context) (*RequestPayload, []byte, error) {
 	return payload, rawHTTPBytes, nil
 }
 
-func TunnelHandler(ctx *gin.Context) {
+func (ws *WSManager) TunnelHandler(ctx *gin.Context) {
 	payload, rawBytes, err := ReadAndPrepareRequest(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -64,8 +65,19 @@ func TunnelHandler(ctx *gin.Context) {
 		fmt.Println("Body: (empty)")
 	}
 
+	clientId := payload.URL
 	// Example: Serialize structured payload to JSON frame to send across your WebSocket/TCP channel
-	jsonFrame, _ := json.Marshal(payload)
+	jsonFrame, err := json.Marshal(payload)
+	if err != nil {
+		log.Println("error in marshaling to json ", err)
+		return
+	}
+
+	err = ws.ForwardRequest(clientId, jsonFrame)
+	if err != nil {
+		log.Println("error in forwarding request ", err)
+		return
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"status":         "Request captured",

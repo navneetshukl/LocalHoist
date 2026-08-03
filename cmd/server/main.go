@@ -13,7 +13,7 @@ func main() {
 
 	wsManager := server.NewWSManager()
 	http.HandleFunc("/ws", wsManager.HandleWebSocket)
-	r.Any("/tunnel/*filepath", server.TunnelHandler)
+	r.Any("/tunnel/*filepath", wsManager.TunnelHandler)
 
 	log.Println("Server is listening on :3000")
 	if err := http.ListenAndServe(":3000", nil); err != nil {
