@@ -1,1 +1,3 @@
 req.txt
+*.exe
+internal/client/LocalHoist

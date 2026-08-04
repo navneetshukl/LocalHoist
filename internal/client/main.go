@@ -1,4 +1,4 @@
-// cmd/portbridge-agent/main.go
+// main.go
 package main
 
 import (
@@ -7,15 +7,46 @@ import (
 	"os/signal"
 
 	"github.com/gorilla/websocket"
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	// The URL of your Server
-	url := "ws://localhost:3000/ws"
-	log.Printf("Connecting to %s...", url)
+	var rootCmd = &cobra.Command{
+		Use:   "LocalHoist",
+		Short: "LocalHoist creates secure tunnels to your local ports",
+	}
 
-	// 1. Dial the server
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	var connectCmd = &cobra.Command{
+		// [url] in the Use string tells users an optional argument is expected
+		Use:   "connect [url]", 
+		Short: "Connect to the WebSocket server",
+		// This ensures the user passes at most 1 argument (the URL)
+		Args:  cobra.MaximumNArgs(1), 
+		Run:   runConnect,
+	}
+
+	rootCmd.AddCommand(connectCmd)
+
+	if err := rootCmd.Execute(); err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+}
+
+// Notice the args []string parameter
+func runConnect(cmd *cobra.Command, args []string) {
+	// Set the default URL
+	serverURL := "ws://localhost:3000/ws"
+
+	// If the user passed an argument (like `mkdir name`), override the default URL
+	if len(args) > 0 {
+		serverURL = args[0]
+	}
+
+	log.Printf("Connecting to %s...", serverURL)
+
+	// Dial the server
+	conn, _, err := websocket.DefaultDialer.Dial(serverURL, nil)
 	if err != nil {
 		log.Fatal("Failed to connect:", err)
 	}
@@ -23,7 +54,7 @@ func main() {
 
 	log.Println("Connected to Server! Tunnel is open.")
 
-	// 2. Start a background Goroutine to continuously read messages
+	// Start a background Goroutine to continuously read messages
 	go func() {
 		for {
 			_, message, err := conn.ReadMessage()
@@ -35,18 +66,22 @@ func main() {
 		}
 	}()
 
-	// 3. Send a test message up the tunnel
+	// Send a test message up the tunnel
 	testMessage := []byte("Hello from the Local Agent!")
 	err = conn.WriteMessage(websocket.TextMessage, testMessage)
 	if err != nil {
 		log.Println("Failed to send message:", err)
 	}
 
-	// 4. Block the main thread so the program doesn't exit immediately
-	// This waits for you to press Ctrl+C
+	// Block the main thread so the program doesn't exit immediately
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	<-interrupt
 
-	log.Println("Shutting down Agent...")
+	log.Println("\nShutting down Agent...")
+
+	err = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	if err != nil {
+		log.Println("Error during closing handshake:", err)
+	}
 }
