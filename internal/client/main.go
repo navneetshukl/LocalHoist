@@ -2,6 +2,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -62,29 +63,41 @@ func runConnect(cmd *cobra.Command, args []string) {
 				log.Println("Server disconnected or read error:", err)
 				return
 			}
-			// convert this to http request payload
 
 			payload, err := DecodeRequest(message)
 			if err != nil {
-				log.Println("error in decoding request ", err)
-				return
+				log.Println("Error decoding request:", err)
+				continue
 			}
 
-			// make the request to local server
-
+			// Execute local HTTP request
 			resp, err := Execute(payload)
 			if err != nil {
-				log.Println("error in making request to local", err)
-				return
+				log.Println("Error making request to local server:", err)
+				// Optional: send error payload back to WebSocket server here
+				continue
 			}
 
-			err = conn.WriteJSON(resp)
+			// Read the EXACT body bytes (handles JSON, HTML, images, binary streams, etc.)
+			bodyBytes, err := io.ReadAll(resp.Body)
+			resp.Body.Close()
 			if err != nil {
-				log.Println("error in writing to server", err)
-				return
+				log.Println("Error reading local response body:", err)
+				continue
 			}
 
-			log.Printf("Message from Server: %s\n", message)
+			// Construct response with exact headers and raw bytes
+			respPayload := ResponsePayload{
+				StatusCode: resp.StatusCode,
+				Headers:    resp.Header,
+				Body:       bodyBytes,
+			}
+
+			// Send back over WebSocket
+			if err := conn.WriteJSON(respPayload); err != nil {
+				log.Println("Error writing response to server:", err)
+				return
+			}
 		}
 	}()
 
