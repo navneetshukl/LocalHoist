@@ -12,12 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type RequestPayload struct {
-	Method  string              `json:"method"`
-	URL     string              `json:"url"`
-	Headers map[string][]string `json:"headers"`
-	Body    []byte              `json:"body"`
-}
+
 
 // ReadAndPrepareRequest will read the whole request and convert in format to write to client
 func ReadAndPrepareRequest(ctx *gin.Context) (*RequestPayload, []byte, error) {

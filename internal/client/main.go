@@ -18,11 +18,11 @@ func main() {
 
 	var connectCmd = &cobra.Command{
 		// [url] in the Use string tells users an optional argument is expected
-		Use:   "connect [url]", 
+		Use:   "connect [url]",
 		Short: "Connect to the WebSocket server",
 		// This ensures the user passes at most 1 argument (the URL)
-		Args:  cobra.MaximumNArgs(1), 
-		Run:   runConnect,
+		Args: cobra.MaximumNArgs(1),
+		Run:  runConnect,
 	}
 
 	rootCmd.AddCommand(connectCmd)
@@ -62,6 +62,28 @@ func runConnect(cmd *cobra.Command, args []string) {
 				log.Println("Server disconnected or read error:", err)
 				return
 			}
+			// convert this to http request payload
+
+			payload, err := DecodeRequest(message)
+			if err != nil {
+				log.Println("error in decoding request ", err)
+				return
+			}
+
+			// make the request to local server
+
+			resp, err := Execute(payload)
+			if err != nil {
+				log.Println("error in making request to local", err)
+				return
+			}
+
+			err = conn.WriteJSON(resp)
+			if err != nil {
+				log.Println("error in writing to server", err)
+				return
+			}
+
 			log.Printf("Message from Server: %s\n", message)
 		}
 	}()
