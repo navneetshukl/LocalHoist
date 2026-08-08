@@ -2,6 +2,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"os"
@@ -55,6 +56,22 @@ func runConnect(cmd *cobra.Command, args []string) {
 
 	log.Println("Connected to Server! Tunnel is open.")
 
+	_, message, err := conn.ReadMessage()
+	if err != nil {
+		log.Println("Server disconnected or read error:", err)
+		return
+	}
+
+	log.Println("Request in clicllclclnet ", string(message))
+
+	payload, err := DecodeRequest(message)
+	if err != nil {
+		log.Println("Error decoding request:", err)
+		return
+	}
+
+	log.Println("LocalHoist URL is ",payload.URL)
+
 	// Start a background Goroutine to continuously read messages
 	go func() {
 		for {
@@ -64,11 +81,18 @@ func runConnect(cmd *cobra.Command, args []string) {
 				return
 			}
 
+			log.Println("Request in clinet ", string(message))
+
+			log.Println("Reeceiving message is 1111")
+
 			payload, err := DecodeRequest(message)
 			if err != nil {
 				log.Println("Error decoding request:", err)
 				continue
 			}
+
+			j, _ := json.Marshal(payload)
+			log.Println("Payload is ", string(j))
 
 			// Execute local HTTP request
 			resp, err := Execute(payload)
@@ -100,13 +124,6 @@ func runConnect(cmd *cobra.Command, args []string) {
 			}
 		}
 	}()
-
-	// Send a test message up the tunnel
-	testMessage := []byte("Hello from the Local Agent!")
-	err = conn.WriteMessage(websocket.TextMessage, testMessage)
-	if err != nil {
-		log.Println("Failed to send message:", err)
-	}
 
 	// Block the main thread so the program doesn't exit immediately
 	interrupt := make(chan os.Signal, 1)

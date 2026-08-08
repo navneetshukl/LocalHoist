@@ -1,3 +1,10 @@
+/**
+
+This file will open the websocker connection when first time client will connect than generate the public url
+and send the public url to the client.
+
+**/
+
 package server
 
 import (
@@ -27,6 +34,7 @@ func NewWSManager() *WSManager {
 	}
 }
 
+// HandleWebSocket will start the websocket connection
 func (ws *WSManager) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -63,7 +71,7 @@ func (ws *WSManager) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		log.Println("inside the request ", ctx)
-		messageType, payload, err := conn.ReadMessage()
+		_, payload, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("Agent disconnected or read error:", err)
 			break
@@ -71,16 +79,17 @@ func (ws *WSManager) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		log.Println("outside the request ", ctx)
 
 		log.Printf("Received from Agent: %s\n", payload)
-		response := []byte("Server received: " + string(payload))
-		err = conn.WriteMessage(messageType, response)
-		if err != nil {
-			log.Println("Write error:", err)
-			break
-		}
+		//response := []byte("Server received: " + string(payload))
+		// err = conn.WriteMessage(messageType, response)
+		// if err != nil {
+		// 	log.Println("Write error:", err)
+		// 	break
+		// }
 		ctx++
 	}
 }
 
+// ForwardRequest will forward the request from the frontend to locally running backend
 func (ws *WSManager) ForwardRequest(clientId string, payload interface{}) error {
 
 	// get the websocket object

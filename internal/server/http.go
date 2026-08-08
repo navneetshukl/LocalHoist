@@ -8,11 +8,10 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
-
-
 
 // ReadAndPrepareRequest will read the whole request and convert in format to write to client
 func ReadAndPrepareRequest(ctx *gin.Context) (*RequestPayload, []byte, error) {
@@ -41,13 +40,16 @@ func ReadAndPrepareRequest(ctx *gin.Context) (*RequestPayload, []byte, error) {
 
 	return payload, rawHTTPBytes, nil
 }
-
+// http://localhost:3000/tunnel/4cf2fd
+// TunnelHandler will serve the client request
 func (ws *WSManager) TunnelHandler(ctx *gin.Context) {
-	payload, rawBytes, err := ReadAndPrepareRequest(ctx)
+	payload, _, err := ReadAndPrepareRequest(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	log.Println("payload in Tunnelhandler is ",payload)
 
 	// --- DEMONSTRATION OF READ DATA ---
 	fmt.Printf("\n--- [Incoming %s Request] ---\n", payload.Method)
@@ -74,10 +76,28 @@ func (ws *WSManager) TunnelHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"status":         "Request captured",
-		"method":         payload.Method,
-		"raw_bytes_len":  len(rawBytes),
-		"json_frame_len": len(jsonFrame),
-	})
+	// I need to capture the response from the backend running server and send it to frontend
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		// get the websocket connection object
+		defer wg.Done()
+
+		conn, ok := ws.wsConn[clientId]
+		if !ok {
+			// return valid response to client
+			return
+		}
+
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			// return valid response to client
+			return
+		}
+
+		ctx.JSON(http.StatusOK, msg)
+	}()
+
+	wg.Wait()
 }
