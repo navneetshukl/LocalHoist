@@ -1,6 +1,7 @@
 package server
 
 import (
+	"LocalHoist/utils"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -40,6 +41,7 @@ func ReadAndPrepareRequest(ctx *gin.Context) (*RequestPayload, []byte, error) {
 
 	return payload, rawHTTPBytes, nil
 }
+
 // http://localhost:3000/tunnel/4cf2fd
 // TunnelHandler will serve the client request
 func (ws *WSManager) TunnelHandler(ctx *gin.Context) {
@@ -49,7 +51,7 @@ func (ws *WSManager) TunnelHandler(ctx *gin.Context) {
 		return
 	}
 
-	log.Println("payload in Tunnelhandler is ",payload)
+	log.Println("payload in Tunnelhandler is ", payload)
 
 	// --- DEMONSTRATION OF READ DATA ---
 	fmt.Printf("\n--- [Incoming %s Request] ---\n", payload.Method)
@@ -62,7 +64,14 @@ func (ws *WSManager) TunnelHandler(ctx *gin.Context) {
 		fmt.Println("Body: (empty)")
 	}
 
-	clientId := payload.URL
+	url := payload.URL
+	log.Println("ClientId in TunnelHandler is ", url)
+
+	err, clientId := utils.GetClientIdFromRoute(url)
+	if err != nil {
+		return
+	}
+	log.Println("ClientId is ", clientId)
 	// Example: Serialize structured payload to JSON frame to send across your WebSocket/TCP channel
 	jsonFrame, err := json.Marshal(payload)
 	if err != nil {
