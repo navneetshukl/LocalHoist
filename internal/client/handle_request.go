@@ -26,6 +26,7 @@ func Execute(r *RequestPayload) (*http.Response, error) {
 	if len(r.Body) > 0 {
 		bodyReader = bytes.NewReader(r.Body)
 	}
+	r.URL="http://localhost:8080/"
 
 	req, err := http.NewRequest(r.Method, r.URL, bodyReader)
 	if err != nil {

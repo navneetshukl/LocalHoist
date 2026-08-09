@@ -70,32 +70,26 @@ func runConnect(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	log.Println("LocalHoist URL is ",payload.URL)
+	log.Println("LocalHoist URL is ", payload.URL)
 
 	// Start a background Goroutine to continuously read messages
 	go func() {
 		for {
-			_, message, err := conn.ReadMessage()
+			payload := RequestPayload{}
+			// _, message, err := conn.ReadMessage()
+
+			err := conn.ReadJSON(&payload)
 			if err != nil {
 				log.Println("Server disconnected or read error:", err)
 				return
 			}
 
-			log.Println("Request in clinet ", string(message))
+			log.Println("Request in clinet ", payload)
 
 			log.Println("Reeceiving message is 1111")
 
-			payload, err := DecodeRequest(message)
-			if err != nil {
-				log.Println("Error decoding request:", err)
-				continue
-			}
-
-			j, _ := json.Marshal(payload)
-			log.Println("Payload is ", string(j))
-
 			// Execute local HTTP request
-			resp, err := Execute(payload)
+			resp, err := Execute(&payload)
 			if err != nil {
 				log.Println("Error making request to local server:", err)
 				// Optional: send error payload back to WebSocket server here
@@ -110,11 +104,19 @@ func runConnect(cmd *cobra.Command, args []string) {
 				continue
 			}
 
+			var responseBody map[string]interface{}
+
+			err=json.Unmarshal(bodyBytes,&responseBody)
+			if err!=nil{
+				log.Println("error in unmarshalling json ",err)
+				return
+			}
+
 			// Construct response with exact headers and raw bytes
 			respPayload := ResponsePayload{
 				StatusCode: resp.StatusCode,
 				Headers:    resp.Header,
-				Body:       bodyBytes,
+				Body:       responseBody,
 			}
 
 			// Send back over WebSocket
@@ -122,6 +124,7 @@ func runConnect(cmd *cobra.Command, args []string) {
 				log.Println("Error writing response to server:", err)
 				return
 			}
+			log.Println("Written back to socket is ",respPayload)
 		}
 	}()
 

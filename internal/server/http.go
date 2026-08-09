@@ -3,7 +3,6 @@ package server
 import (
 	"LocalHoist/utils"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -69,17 +68,12 @@ func (ws *WSManager) TunnelHandler(ctx *gin.Context) {
 
 	err, clientId := utils.GetClientIdFromRoute(url)
 	if err != nil {
+		log.Println("error in getting client id", err)
 		return
 	}
 	log.Println("ClientId is ", clientId)
-	// Example: Serialize structured payload to JSON frame to send across your WebSocket/TCP channel
-	jsonFrame, err := json.Marshal(payload)
-	if err != nil {
-		log.Println("error in marshaling to json ", err)
-		return
-	}
 
-	err = ws.ForwardRequest(clientId, jsonFrame)
+	err = ws.ForwardRequest(clientId, payload)
 	if err != nil {
 		log.Println("error in forwarding request ", err)
 		return
@@ -96,16 +90,23 @@ func (ws *WSManager) TunnelHandler(ctx *gin.Context) {
 		conn, ok := ws.wsConn[clientId]
 		if !ok {
 			// return valid response to client
+			log.Println("No Id is present ")
 			return
 		}
 
-		_, msg, err := conn.ReadMessage()
+		respPayload := ResponsePayload{}
+
+		//_, msg, err := conn.ReadMessage()
+		err = conn.ReadJSON(&respPayload)
 		if err != nil {
 			// return valid response to client
+			log.Println("error in reading the response in waiting ", err)
 			return
 		}
 
-		ctx.JSON(http.StatusOK, msg)
+		log.Println("Received response after hit is ", respPayload)
+
+		ctx.JSON(http.StatusOK, respPayload)
 	}()
 
 	wg.Wait()

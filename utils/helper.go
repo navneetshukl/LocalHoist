@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"log"
 	"strings"
 )
 
@@ -14,17 +13,15 @@ func GenerateClientID() string {
 	return hex.EncodeToString(bytes)
 }
 
-func GetClientIdFromRoute(route string) (error,string) {
-	strings.ReplaceAll(route," ","")
-	if route==""{
-		return errors.New("client id is empty"),""
+func GetClientIdFromRoute(route string) (error, string) {
+	strings.ReplaceAll(route, " ", "")
+	if route == "" {
+		return errors.New("client id is empty"), ""
 
 	}
 	routesArray := strings.Split(route, "/")
-	log.Println("Routes Array ", routesArray)
-	log.Println("Length Of Array is ",len(routesArray))
-	if len(routesArray)!=4{
-		return errors.New("client id is invalid"),""
+	if len(routesArray) != 3 {
+		return errors.New("client id is invalid"), ""
 	}
-	return nil,routesArray[2]
+	return nil, routesArray[2]
 }
