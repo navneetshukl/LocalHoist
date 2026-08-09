@@ -69,26 +69,6 @@ func (ws *WSManager) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	select{}
-	//ctx := 0
-
-	// for {
-	// 	log.Println("inside the request ", ctx)
-	// 	_, payload, err := conn.ReadMessage()
-	// 	if err != nil {
-	// 		log.Println("Agent disconnected or read error:", err)
-	// 		break
-	// 	}
-	// 	log.Println("outside the request ", ctx)
-
-	// 	log.Printf("Received from Agent: %s\n", payload)
-	// 	//response := []byte("Server received: " + string(payload))
-	// 	// err = conn.WriteMessage(messageType, response)
-	// 	// if err != nil {
-	// 	// 	log.Println("Write error:", err)
-	// 	// 	break
-	// 	// }
-	// 	ctx++
-	// }
 }
 
 // ForwardRequest will forward the request from the frontend to locally running backend

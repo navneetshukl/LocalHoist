@@ -96,7 +96,6 @@ func (ws *WSManager) TunnelHandler(ctx *gin.Context) {
 
 		respPayload := ResponsePayload{}
 
-		//_, msg, err := conn.ReadMessage()
 		err = conn.ReadJSON(&respPayload)
 		if err != nil {
 			// return valid response to client

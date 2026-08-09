@@ -76,7 +76,6 @@ func runConnect(cmd *cobra.Command, args []string) {
 	go func() {
 		for {
 			payload := RequestPayload{}
-			// _, message, err := conn.ReadMessage()
 
 			err := conn.ReadJSON(&payload)
 			if err != nil {
