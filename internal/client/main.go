@@ -98,6 +98,8 @@ func runConnect(cmd *cobra.Command, args []string) {
 				return
 			}
 
+			payload.Port = port
+
 			log.Println("Request in clinet ", payload)
 
 			// Execute local HTTP request

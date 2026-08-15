@@ -30,7 +30,8 @@ func Execute(r *RequestPayload) (*http.Response, error) {
 	if len(r.Body) > 0 {
 		bodyReader = bytes.NewReader(r.Body)
 	}
-	url := fmt.Sprintf("%s%s", "http://localhost:8080/", r.URL)
+	host := fmt.Sprintf("http://localhost:%d", r.Port)
+	url := fmt.Sprintf("%s%s", host, r.URL)
 	url, err := CleanTunnelURL(url)
 	if err != nil {
 		return nil, fmt.Errorf("error in parsing url: %w", err)

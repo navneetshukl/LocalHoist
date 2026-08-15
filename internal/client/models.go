@@ -5,10 +5,11 @@ type RequestPayload struct {
 	URL     string              `json:"url"`
 	Headers map[string][]string `json:"headers"`
 	Body    []byte              `json:"body"`
+	Port    int                 `json:"port"`
 }
 
 type ResponsePayload struct {
-    StatusCode int                 `json:"status_code"`
-    Headers    map[string][]string `json:"headers"`
-    Body       map[string]interface{}              `json:"body"`
+	StatusCode int                    `json:"status_code"`
+	Headers    map[string][]string    `json:"headers"`
+	Body       map[string]interface{} `json:"body"`
 }
