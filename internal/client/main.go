@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
@@ -19,11 +20,10 @@ func main() {
 	}
 
 	var connectCmd = &cobra.Command{
-		// [url] in the Use string tells users an optional argument is expected
-		Use:   "connect [url]",
+		Use:   "connect <port> [url]",
 		Short: "Connect to the WebSocket server",
-		// This ensures the user passes at most 1 argument (the URL)
-		Args: cobra.MaximumNArgs(1),
+		// Requires at least 1 argument (port), maximum 2 (port + URL)
+		Args: cobra.RangeArgs(1, 2),
 		Run:  runConnect,
 	}
 
@@ -37,6 +37,11 @@ func main() {
 
 // Notice the args []string parameter
 func runConnect(cmd *cobra.Command, args []string) {
+
+	port, err := strconv.Atoi(args[0])
+	if err != nil || port <= 0 || port > 65535 {
+		log.Fatalf("Invalid port '%s'. Must be a valid port number (1-65535).", args[0])
+	}
 	// Set the default URL
 	serverURL := "ws://localhost:3000/ws"
 
@@ -105,9 +110,9 @@ func runConnect(cmd *cobra.Command, args []string) {
 
 			var responseBody map[string]interface{}
 
-			err=json.Unmarshal(bodyBytes,&responseBody)
-			if err!=nil{
-				log.Println("error in unmarshalling json ",err)
+			err = json.Unmarshal(bodyBytes, &responseBody)
+			if err != nil {
+				log.Println("error in unmarshalling json ", err)
 				return
 			}
 
@@ -123,7 +128,7 @@ func runConnect(cmd *cobra.Command, args []string) {
 				log.Println("Error writing response to server:", err)
 				return
 			}
-			log.Println("Written back to socket is ",respPayload)
+			log.Println("Written back to socket is ", respPayload)
 		}
 	}()
 
