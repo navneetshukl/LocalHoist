@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"log"
 	"strings"
 )
 
@@ -20,7 +21,8 @@ func GetClientIdFromRoute(route string) (error, string) {
 
 	}
 	routesArray := strings.Split(route, "/")
-	if len(routesArray) != 3 {
+	log.Println("Routes Array is ",routesArray," ",len(routesArray))
+	if len(routesArray) < 3 {
 		return errors.New("client id is invalid"), ""
 	}
 	return nil, routesArray[2]

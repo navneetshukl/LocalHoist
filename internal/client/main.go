@@ -3,6 +3,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -76,7 +77,15 @@ func runConnect(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	log.Println("LocalHoist URL is ", payload.URL)
+	// \033[32m = Green
+	// \033[36m = Cyan
+	// \033[1m  = Bold
+	// \033[0m  = Reset color back to normal
+
+	msg := fmt.Sprintf("\n\033[32m✔ Successfully connected to LocalHoist!\033[0m\n\033[1m🌍 Public URL:\033[0m \033[36m\033[1m%s\033[0m\n\n", payload.URL)
+
+	// Use fmt.Print so it prints exactly what you formatted, without timestamps
+	fmt.Print(msg)
 
 	// Start a background Goroutine to continuously read messages
 	go func() {
@@ -90,8 +99,6 @@ func runConnect(cmd *cobra.Command, args []string) {
 			}
 
 			log.Println("Request in clinet ", payload)
-
-			log.Println("Reeceiving message is 1111")
 
 			// Execute local HTTP request
 			resp, err := Execute(&payload)
@@ -119,8 +126,8 @@ func runConnect(cmd *cobra.Command, args []string) {
 
 			// Construct response with exact headers and raw bytes
 			respPayload := ResponsePayload{
-				//StatusCode: resp.StatusCode,
-				//Headers:    resp.Header,
+				StatusCode: resp.StatusCode,
+				Headers:    resp.Header,
 				Body:       responseBody,
 			}
 

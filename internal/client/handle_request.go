@@ -5,7 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -26,9 +30,15 @@ func Execute(r *RequestPayload) (*http.Response, error) {
 	if len(r.Body) > 0 {
 		bodyReader = bytes.NewReader(r.Body)
 	}
-	r.URL="http://localhost:8080/"
+	url := fmt.Sprintf("%s%s", "http://localhost:8080/", r.URL)
+	url, err := CleanTunnelURL(url)
+	if err != nil {
+		return nil, fmt.Errorf("error in parsing url: %w", err)
+	}
 
-	req, err := http.NewRequest(r.Method, r.URL, bodyReader)
+	log.Println("URL is ", url)
+
+	req, err := http.NewRequest(r.Method, url, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -44,4 +54,21 @@ func Execute(r *RequestPayload) (*http.Response, error) {
 	}
 
 	return client.Do(req)
+}
+
+func CleanTunnelURL(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	cleanPath := strings.ReplaceAll(u.Path, "//", "/")
+
+	re := regexp.MustCompile(`^/tunnel/[^/]+`)
+	newPath := re.ReplaceAllString(cleanPath, "")
+
+	if newPath == "" {
+		newPath = "/"
+	}
+	u.Path = newPath
+	return u.String(), nil
 }
