@@ -8,7 +8,7 @@ and send the public url to the client.
 package server
 
 import (
-	"LocalHoist/utils"
+	"LocalHoist-Server/utils"
 	"fmt"
 	"log"
 	"net/http"
@@ -68,7 +68,7 @@ func (ws *WSManager) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	select{}
+	select {}
 }
 
 // ForwardRequest will forward the request from the frontend to locally running backend
@@ -76,7 +76,7 @@ func (ws *WSManager) ForwardRequest(clientId string, payload interface{}) error 
 
 	// get the websocket object
 
-	log.Println("Inside forward request.Payload is ",payload)
+	log.Println("Inside forward request.Payload is ", payload)
 
 	c, ok := ws.wsConn[clientId]
 	if !ok {

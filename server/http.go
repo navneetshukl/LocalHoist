@@ -1,7 +1,7 @@
 package server
 
 import (
-	"LocalHoist/utils"
+	"LocalHoist-Server/utils"
 	"bytes"
 	"fmt"
 	"io"
