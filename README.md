@@ -20,7 +20,9 @@
 **LocalHoist** lets you take an app running on your machine (say, `localhost:8080`) and give it a public URL that anyone on the internet can hit. It's the same idea behind tools like `ngrok` or `localtunnel`, implemented from scratch in Go as a two-part system:
 
 - **Server** — a Gin HTTP server that accepts WebSocket connections from clients and issues each one a unique public tunnel URL.
-- **Client (CLI)** — a Cobra-based command line agent that connects to the server, listens for incoming requests over the socket, replays them against your local app, and streams the response back.
+- **Client (CLI)** — a Cobra-based command line agent that connects to the server, listens for incoming requests over the socket, replays them against a local port you specify, and streams the response back.
+
+Server and client are independent Go modules (`LocalHoist-Server` and `LocalHoist-Client`), so each can be built, versioned, and deployed on its own.
 
 When someone hits your public tunnel URL, the request travels over the open WebSocket connection to your machine, gets executed locally, and the response is relayed back out — all in real time.
 
@@ -44,23 +46,25 @@ When someone hits your public tunnel URL, the request travels over the open WebS
                                 ▼
                      ┌──────────────────────┐
                      │  Your Local App       │
-                     │  (e.g. localhost:8080)│
+                     │  (localhost:<port>)  │
                      └──────────────────────┘
 ```
 
-1. The **client** connects to the server via `GET /ws`, which upgrades the connection to a WebSocket.
-2. The server generates a random hex **client ID** and replies with a public tunnel URL: `http(s)://<server-host>/tunnel/<clientID>`.
-3. Any HTTP request sent to that public URL is captured by the server, matched to the right client by ID, and forwarded down the WebSocket as JSON.
-4. The client decodes the payload, replays it as a real HTTP request against your local app, and writes the response back over the socket.
-5. The server picks up that response and returns it to the original caller.
+1. You run the **client** with the local port you want to expose: `connect <port> [url]`.
+2. The client connects to the server via `GET /ws`, which upgrades the connection to a WebSocket.
+3. The server generates a random hex **client ID** and replies with a public tunnel URL: `http(s)://<server-host>/tunnel/<clientID>`.
+4. Any HTTP request sent to that public URL is captured by the server, matched to the right client by ID, and forwarded down the WebSocket as JSON.
+5. The client decodes the payload, replays it as a real HTTP request against `localhost:<port>`, and writes the response back over the socket.
+6. The server picks up that response and returns it to the original caller.
 
 ## ✨ Features
 
 - 🔌 **WebSocket-based tunneling** — a single persistent connection carries all traffic for a client, no repeated handshakes.
 - 🆔 **Per-client public URLs** — each connected client gets a unique `/tunnel/<id>` route, generated with a cryptographically random ID.
+- 🎯 **Configurable target port** — `connect <port>` points the tunnel at any local port, no hardcoded target.
 - 🖥️ **Simple CLI** — built on [Cobra](https://github.com/spf13/cobra), so commands and flags are easy to extend.
 - 📦 **Raw request forwarding** — method, URL, headers, and body are captured and reconstructed faithfully between server and client.
-- 🪶 **Minimal dependencies, single binary** — no external infrastructure needed to run the server or client.
+- 🪶 **Minimal dependencies** — no external infrastructure needed to run the server or client.
 
 ## 🛠️ Tech Stack
 
@@ -73,26 +77,31 @@ When someone hits your public tunnel URL, the request travels over the open WebS
 
 ## 📂 Project Structure
 
+The server, client, and test app are each their own Go module:
+
 ```
 LocalHoist/
-├── cmd/
-│   └── server/
-│       └── main.go          # Server entrypoint — starts Gin, registers /ws and /tunnel routes
-├── internal/
-│   ├── server/
-│   │   ├── ws.go             # WebSocket upgrade + public URL generation + request forwarding
-│   │   ├── http.go           # Tunnel HTTP handler — parses & relays incoming public requests
-│   │   └── models.go         # Server-side request/response payload structs
-│   └── client/
-│       ├── main.go           # CLI entrypoint (Cobra) — connects to server, listens for requests
-│       ├── handle_request.go # Decodes payloads & executes them against the local app
-│       └── models.go         # Client-side request/response payload structs
-├── utils/
-│   └── helper.go              # Client ID generation, route parsing
-├── test/
-│   └── main.go                # A minimal local Gin app to test tunneling against
-├── go.mod
-└── go.sum
+├── server/                    # module: LocalHoist-Server
+│   ├── cmd/
+│   │   └── main.go            # Server entrypoint — starts Gin, registers /ws and /tunnel routes
+│   ├── ws.go                  # WebSocket upgrade + public URL generation + request forwarding
+│   ├── http.go                # Tunnel HTTP handler — parses & relays incoming public requests
+│   ├── models.go              # Server-side request/response payload structs
+│   ├── utils/
+│   │   └── helper.go          # Client ID generation, route parsing
+│   ├── go.mod
+│   └── go.sum
+├── client/                    # module: LocalHoist-Client
+│   ├── main.go                # CLI entrypoint (Cobra) — `connect <port> [url]`
+│   ├── handle_request.go      # Decodes payloads & executes them against localhost:<port>
+│   ├── models.go              # Client-side request/response payload structs
+│   ├── go.mod
+│   └── go.sum
+├── test/                      # module: test
+│   ├── main.go                # A minimal local Gin app to test tunneling against
+│   ├── go.mod
+│   └── go.sum
+└── gitignore
 ```
 
 ## 🚀 Getting Started
@@ -101,18 +110,21 @@ LocalHoist/
 
 - [Go](https://go.dev/dl/) 1.25 or later
 
-### Clone & Install Dependencies
+### Clone the repo
 
 ```bash
 git clone https://github.com/navneetshukl/LocalHoist.git
 cd LocalHoist
-go mod tidy
 ```
+
+Each module manages its own dependencies, so run `go mod tidy` inside `server/`, `client/`, and `test/` as needed.
 
 ### 1. Start the server
 
 ```bash
-go run ./cmd/server
+cd server
+go mod tidy
+go run ./cmd
 ```
 
 The server starts listening on `:3000` and logs `Server is listening on :3000`.
@@ -122,15 +134,27 @@ The server starts listening on `:3000` and logs `Server is listening on :3000`.
 A sample app is included for testing:
 
 ```bash
-go run ./test
+cd test
+go mod tidy
+go run .
 ```
 
 This starts a demo app on `:8080`.
 
 ### 3. Start the LocalHoist client
 
+Point the client at the port your local app is running on:
+
 ```bash
-go run ./internal/client connect ws://localhost:3000/ws
+cd client
+go mod tidy
+go run . connect 8080
+```
+
+An optional second argument overrides the server URL (defaults to `ws://localhost:3000/ws`):
+
+```bash
+go run . connect 8080 ws://localhost:3000/ws
 ```
 
 You'll see the client connect and print out a public tunnel URL, e.g.:
@@ -138,7 +162,8 @@ You'll see the client connect and print out a public tunnel URL, e.g.:
 ```
 Connecting to ws://localhost:3000/ws...
 Connected to Server! Tunnel is open.
-LocalHoist URL is  http://localhost:3000/tunnel/4cf2fd
+✔ Successfully connected to LocalHoist!
+🌍 Public URL: http://localhost:3000/tunnel/4cf2fd
 ```
 
 ### 4. Hit the public URL
@@ -147,18 +172,18 @@ LocalHoist URL is  http://localhost:3000/tunnel/4cf2fd
 curl http://localhost:3000/tunnel/4cf2fd
 ```
 
-The request is forwarded over the WebSocket to your client, executed against your local app, and the response is returned.
+The request is forwarded over the WebSocket to your client, executed against `localhost:8080`, and the response is returned.
 
-> 💡 You can also build standalone binaries with `go build -o localhoist-server ./cmd/server` and `go build -o localhoist ./internal/client`.
+> 💡 You can also build standalone binaries: `go build -o localhoist-server ./cmd` (from `server/`) and `go build -o localhoist .` (from `client/`).
 
 ## 🧭 Roadmap / Known Limitations
 
 LocalHoist is under active development. A few things currently on the radar:
 
-- [ ] The client currently forwards requests to a **hardcoded** local target (`localhost:8080`) — making this configurable via a CLI flag is next.
 - [ ] Response bodies are assumed to be JSON; support for arbitrary content types (HTML, images, binary streams) is planned.
 - [ ] No TLS or authentication on tunnel connections yet.
 - [ ] Client-to-server connection state is in-memory only — no reconnect/session resumption yet.
+- [ ] `WSManager.wsConn` is a plain map with no mutex — concurrent connects could race.
 
 Contributions and ideas around these are very welcome!
 
