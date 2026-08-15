@@ -46,8 +46,8 @@ func runConnect(cmd *cobra.Command, args []string) {
 	serverURL := "ws://localhost:3000/ws"
 
 	// If the user passed an argument (like `mkdir name`), override the default URL
-	if len(args) > 0 {
-		serverURL = args[0]
+	if len(args) > 1 {
+		serverURL = args[1]
 	}
 
 	log.Printf("Connecting to %s...", serverURL)
@@ -56,6 +56,7 @@ func runConnect(cmd *cobra.Command, args []string) {
 	conn, _, err := websocket.DefaultDialer.Dial(serverURL, nil)
 	if err != nil {
 		log.Fatal("Failed to connect:", err)
+		return
 	}
 	defer conn.Close()
 
@@ -118,8 +119,8 @@ func runConnect(cmd *cobra.Command, args []string) {
 
 			// Construct response with exact headers and raw bytes
 			respPayload := ResponsePayload{
-				StatusCode: resp.StatusCode,
-				Headers:    resp.Header,
+				//StatusCode: resp.StatusCode,
+				//Headers:    resp.Header,
 				Body:       responseBody,
 			}
 
