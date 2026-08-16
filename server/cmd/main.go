@@ -3,24 +3,24 @@ package main
 import (
 	server "LocalHoist-Server"
 	"log"
-	"os"
+	"os" // Required to read environment variables
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// Read the PORT environment variable set by Cloud Run (fallback to 8080 for local testing)
+	// Read the PORT from Cloud Run, default to 8080 if running locally
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// Set Gin to release mode in production
+	// Set Gin to Release Mode for production
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
-
-	// Trust Cloud Run / Google Cloud front-end proxy
+	
+	// Trust Cloud Run's proxy to avoid warnings
 	_ = r.SetTrustedProxies(nil)
 
 	wsManager := server.NewWSManager()
@@ -32,7 +32,7 @@ func main() {
 
 	log.Printf("Server is listening on :%s\n", port)
 
-	// Bind dynamically to ":PORT"
+	// Bind to the dynamic port here instead of ":3000"
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Server crashed:", err)
 	}
