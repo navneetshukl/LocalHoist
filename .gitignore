@@ -1,3 +1,4 @@
 req.txt
 *.exe
 internal/client/LocalHoist
+IMPROVEMENTS.md
