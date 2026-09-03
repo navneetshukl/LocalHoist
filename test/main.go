@@ -6,7 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
+// SetupRouter creates and configures the Gin router with all routes
+func SetupRouter() *gin.Engine {
 	// Initialize a new Gin router
 	router := gin.Default()
 
@@ -69,6 +70,11 @@ func main() {
 		})
 	})
 
+	return router
+}
+
+func main() {
+	router := SetupRouter()
 	// Start the server on port 8080
 	router.Run(":8080")
 }
